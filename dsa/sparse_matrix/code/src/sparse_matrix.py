@@ -1,13 +1,16 @@
 import os
 
+# Implements a sparse matrix using dictionary-based storage for non-zero elements
 class SparseMatrix:
     def __init__(self, source, num_cols=None):
+        # Initialize empty matrix data and dimensions
         self.matrix_data = {}
         self.file_declared_max_row = -1 
         self.file_declared_max_col = -1
         self.rows = 0
         self.cols = 0
 
+        # Handle initialization from file path or dimensions
         if isinstance(source, str):
             self._parse_file(source)
         elif isinstance(source, int) and isinstance(num_cols, int):
@@ -23,12 +26,14 @@ class SparseMatrix:
         else:
             raise TypeError("Invalid arguments for SparseMatrix constructor.")
 
+    # Helper to validate integer strings
     def _is_valid_int(self, s_val):
         s_val = s_val.strip()
         if not s_val: return False
         if s_val[0] in "+-": return len(s_val) > 1 and s_val[1:].isdigit()
         return s_val.isdigit()
 
+    # Parse matrix data from input file
     def _parse_file(self, file_path):
         try:
             with open(file_path, 'r') as f:
@@ -39,10 +44,12 @@ class SparseMatrix:
         parsed_rows = parsed_cols = False
         self.file_declared_max_row = self.file_declared_max_col = -2
 
+        # Process each line in the file
         for line_num, raw_line in enumerate(lines):
             line = raw_line.strip()
             if not line: continue
 
+            # Parse rows definition
             if line.startswith("rows="):
                 if parsed_rows:
                     raise ValueError("Input file has wrong format: 'rows' specified multiple times.")
@@ -54,6 +61,7 @@ class SparseMatrix:
                     if "Input file has wrong format" in str(e): raise
                     raise ValueError(f"Input file has wrong format: Malformed 'rows' entry on line {line_num + 1}")
             
+            # Parse cols definition
             elif line.startswith("cols="):
                 if parsed_cols:
                     raise ValueError("Input file has wrong format: 'cols' specified multiple times.")
@@ -65,6 +73,7 @@ class SparseMatrix:
                     if "Input file has wrong format" in str(e): raise
                     raise ValueError(f"Input file has wrong format: Malformed 'cols' entry on line {line_num + 1}")
 
+            # Parse matrix entries
             elif line.startswith("(") and line.endswith(")"):
                 if not parsed_rows or not parsed_cols:
                     raise ValueError("Input file has wrong format: Matrix dimensions must be defined before data entries.")
@@ -86,6 +95,7 @@ class SparseMatrix:
         if not parsed_rows or not parsed_cols:
             raise ValueError("Input file has wrong format: Missing 'rows' or 'cols' definition.")
             
+    # Validate and set matrix dimensions
     def _validate_and_set_dimension(self, val_str, line_num, raw_line, dim_type):
         if not self._is_valid_int(val_str):
             raise ValueError(f"Input file has wrong format: '{dim_type}s' value is not an integer")
@@ -101,11 +111,13 @@ class SparseMatrix:
             self.file_declared_max_col = declared_max
             self.cols = declared_max + 1
 
+    # Get element at specified position
     def get_element(self, curr_row, curr_col):
         if not (0 <= curr_row < self.rows and 0 <= curr_col < self.cols):
             raise IndexError("Element index out of bounds.")
         return self.matrix_data.get(curr_row, {}).get(curr_col, 0)
 
+    # Set element at specified position
     def set_element(self, curr_row, curr_col, value):
         if not (0 <= curr_row < self.rows and 0 <= curr_col < self.cols):
             raise IndexError("Element index out of bounds.")
@@ -121,6 +133,7 @@ class SparseMatrix:
         else:
             self.matrix_data.setdefault(curr_row, {})[curr_col] = value
 
+    # String representation of matrix
     def __str__(self):
         s = f"Rows: {self.rows}, Cols: {self.cols}\nNon-zero elements:\n"
         if not self.matrix_data:
@@ -131,6 +144,7 @@ class SparseMatrix:
                     s += f"  ({r}, {c}, {self.matrix_data[r][c]})\n"
         return s
 
+    # Generic operation between two matrices
     def operate(self, other_matrix, operation):
         if not isinstance(other_matrix, SparseMatrix):
             raise TypeError("Operand must be a SparseMatrix instance.")
@@ -150,12 +164,15 @@ class SparseMatrix:
         
         return result_matrix
         
+    # Matrix addition
     def add(self, other_matrix):
         return self.operate(other_matrix, lambda x, y: x + y)
 
+    # Matrix subtraction
     def subtract(self, other_matrix):
         return self.operate(other_matrix, lambda x, y: x - y)
 
+    # Matrix multiplication
     def multiply(self, other_matrix):
         if not isinstance(other_matrix, SparseMatrix):
             raise TypeError("Operand must be a SparseMatrix instance.")
@@ -172,6 +189,7 @@ class SparseMatrix:
                         result_matrix.set_element(r1, c2, current_val + val1 * val2)
         return result_matrix
         
+    # Save matrix to file
     def save_to_file(self, file_path):
         with open(file_path, 'w') as f:
             f.write(f"rows={self.rows - 1}\n")
@@ -182,6 +200,7 @@ class SparseMatrix:
                     if value != 0:
                         f.write(f"({r}, {c}, {value})\n")
 
+# Get non-empty input from user
 def get_user_input(prompt):
     while True:
         user_input = input(prompt).strip()
@@ -189,9 +208,11 @@ def get_user_input(prompt):
             return user_input
         print("Input cannot be empty. Please try again.")
 
+# Convert relative path to absolute path
 def get_file_path(user_path, base_dir):
     return user_path if os.path.isabs(user_path) else os.path.join(base_dir, user_path)
 
+# Execute requested matrix operation
 def perform_operation(matrix1, matrix2, choice):
     operations = {
         '1': ('Addition', matrix1.add),
@@ -202,6 +223,7 @@ def perform_operation(matrix1, matrix2, choice):
     print(f"\nPerforming {operation_name}...")
     return operation_name, operation_func(matrix2)
 
+# Main program execution
 if __name__ == "__main__":
     print("Sparse Matrix Operations\n------------------------")
 
